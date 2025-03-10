@@ -24,6 +24,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-bom</artifactId>
+                <version>3.5.10.1</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -55,12 +62,10 @@
             <version>${mybatis-plus}</version>
         </dependency>
 
-        <!--easy-query-->
-        <!--http://www.easy-query.com/easy-query-doc/startup/what-is-easy-query.html-->
+        <!-- MyBatis Plus 分页插件 -->
         <dependency>
-            <groupId>com.easy-query</groupId>
-            <artifactId>sql-springboot-starter</artifactId>
-            <version>${easy-query.version}</version>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser-4.9</artifactId>
         </dependency>
 
         <!--mysql-->

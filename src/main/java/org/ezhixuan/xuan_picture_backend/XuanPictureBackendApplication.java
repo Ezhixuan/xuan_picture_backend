@@ -7,7 +7,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 @SpringBootApplication
 @EnableAspectJAutoProxy(exposeProxy = true)
-@MapperScan("org.ezhixuan.xuan_picture_backend.mapper")
 public class XuanPictureBackendApplication {
 
     public static void main(String[] args) {
