@@ -14,6 +14,9 @@
         <spring-boot.version>2.7.6</spring-boot.version>
         <mybatis-plus>3.5.10.1</mybatis-plus>
         <easy-query.version>2.4.14</easy-query.version>
+        <hutool-all.version>5.8.26</hutool-all.version>
+        <unirest.version>1.4.9</unirest.version>
+        <knife4j.version>4.4.0</knife4j.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -86,19 +89,32 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
-            <version>5.8.26</version>
+            <version>${hutool-all.version}</version>
+        </dependency>
+
+        <!--unirest-->
+        <dependency>
+            <groupId>com.mashape.unirest</groupId>
+            <artifactId>unirest-java</artifactId>
+            <version>${unirest.version}</version>
         </dependency>
 
         <!--knife4j-->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi2-spring-boot-starter</artifactId>
-            <version>4.4.0</version>
+            <version>${knife4j.version}</version>
         </dependency>
 
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>  <!-- 开启过滤 -->
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -129,5 +145,23 @@
             </plugin>
         </plugins>
     </build>
-
+    <profiles>
+        <profile>
+            <!-- 本地开发环境 -->
+            <id>dev</id>
+            <properties>
+                <profiles.active>dev</profiles.active>
+            </properties>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <!-- 生产环境 -->
+            <id>pro</id>
+            <properties>
+                <profiles.active>pro</profiles.active>
+            </properties>
+        </profile>
+    </profiles>
 </project>

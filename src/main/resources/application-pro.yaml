@@ -1,0 +1,7 @@
+upload:
+  type: github
+
+github:
+  repo: # userName/repoName
+  BRANCH: # your branch
+  TOKEN: # your token
