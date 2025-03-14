@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.ezhixuan.xuan_picture_backend.config.picUploadConfigurations.UploadModelEnum;
+import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadResult;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mashape.unirest.http.exceptions.UnirestException;
@@ -13,7 +14,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
  *
  * @author ezhixuan
  */
-public interface PictureService {
+public interface PictureManager {
 
     /**
      * 获取上传模型
@@ -28,12 +29,13 @@ public interface PictureService {
      *
      * @author Ezhixuan
      * @param multipartFile 文件
-     * @param fileName 文件名
+     * @param targetPath 目标路径
+     * @param notReName 是否重命名 默认重命名
      * @return 返回url
      * @throws IOException 文件转换异常
      * @throws UnirestException 网络请求异常
      */
-    String doUpload(MultipartFile multipartFile, String fileName) throws IOException, UnirestException;
+    PictureUploadResult doUpload(MultipartFile multipartFile, String targetPath, boolean notReName) throws IOException, UnirestException;
 
     /**
      * 下载文件

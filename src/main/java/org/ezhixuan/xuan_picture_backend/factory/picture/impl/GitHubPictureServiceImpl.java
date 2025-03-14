@@ -1,18 +1,20 @@
 package org.ezhixuan.xuan_picture_backend.factory.picture.impl;
 
-import java.io.ByteArrayOutputStream;
+import static org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil.toBase64Code;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Base64;
 import java.util.Objects;
 
 import org.ezhixuan.xuan_picture_backend.config.picUploadConfigurations.GitHubConfig;
 import org.ezhixuan.xuan_picture_backend.config.picUploadConfigurations.UploadModelEnum;
 import org.ezhixuan.xuan_picture_backend.exception.ErrorCode;
 import org.ezhixuan.xuan_picture_backend.exception.ThrowUtils;
-import org.ezhixuan.xuan_picture_backend.factory.picture.PictureService;
+import org.ezhixuan.xuan_picture_backend.factory.picture.PictureManager;
+import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadResult;
+import org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,7 +33,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Service
 @RequiredArgsConstructor
-public class GitHubPictureServiceImpl implements PictureService {
+public class GitHubPictureServiceImpl implements PictureManager {
 
     private final GitHubConfig gitHubConfig;
 
@@ -49,22 +51,27 @@ public class GitHubPictureServiceImpl implements PictureService {
     /**
      * 上传文件
      *
-     * @param multipartFile 文件
-     * @param fileName 文件名
-     * @return 返回url
      * @author Ezhixuan
+     * @param multipartFile 文件
+     * @param targetPath 目标路径
+     * @param notReName 是否重命名 默认重命名
+     * @return 返回url
      * @throws IOException 文件转换异常
      * @throws UnirestException 网络请求异常
      */
     @Override
-    public String doUpload(MultipartFile multipartFile, String fileName) throws IOException, UnirestException {
+    public PictureUploadResult doUpload(MultipartFile multipartFile, String targetPath, boolean notReName)
+        throws IOException, UnirestException {
         ThrowUtils.throwIf(Objects.isNull(multipartFile), ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(
             Objects.isNull(gitHubConfig) || Objects.isNull(gitHubConfig.getRepo())
                 || Objects.isNull(gitHubConfig.getBranch()) || Objects.isNull(gitHubConfig.getToken()),
             ErrorCode.SYSTEM_ERROR, "检查github配置");
-        // 转为byte数组
-        return uploadImage(toBase64Code(multipartFile), fileName);
+        PictureCommonUtil.validateFile(multipartFile);
+        PictureUploadResult result = PictureCommonUtil.processImage(multipartFile, notReName);
+        String url = uploadImage(toBase64Code(multipartFile), targetPath + result.getName());
+        result.setUrl(url);
+        return result;
     }
 
     /**
@@ -90,25 +97,6 @@ public class GitHubPictureServiceImpl implements PictureService {
             ThrowUtils.exception(ErrorCode.SYSTEM_ERROR.getCode(), "下载失败 url={}", urlStr);
         }
         return null;
-    }
-
-    /**
-     * 将mutipartFile转为base64格式
-     *
-     * @author Ezhixuan
-     * @param multipartFile 文件
-     * @return base64格式内容
-     */
-    private String toBase64Code(MultipartFile multipartFile) throws IOException {
-        try (InputStream inputStream = multipartFile.getInputStream()) {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] bytes = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(bytes)) != -1) {
-                byteArrayOutputStream.write(bytes, 0, bytesRead);
-            }
-            return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
-        }
     }
 
     /**

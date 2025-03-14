@@ -22,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class PictureFactory {
 
     private final UseUploadTypeConfig typeConfig;
-    private final List<PictureService> serviceList;
+    private final List<PictureManager> serviceList;
 
     private static UploadModelEnum type;
 
@@ -31,7 +31,7 @@ public class PictureFactory {
         type = UploadModelEnum.getUploadModelEnum(typeConfig.getType());
     }
 
-    public PictureService getInstance() {
+    public PictureManager getInstance() {
         return serviceList.stream().filter(service -> Objects.equals(service.getUploadModelEnum(), type)).findAny()
             .orElseThrow(() -> new RuntimeException(ErrorCode.SYSTEM_ERROR.getMessage()));
     }
