@@ -196,6 +196,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return queryWrapper;
     }
 
+    /**
+     * 判断是否为管理员
+     *
+     * @param user 用户
+     * @return 是/否
+     * @author Ezhixuan
+     */
+    @Override
+    public boolean isAdmin(User user) {
+        return Objects.nonNull(user) && UserRoleEnum.ADMIN.getValue().equals(user.getUserRole());
+    }
 }
 
 

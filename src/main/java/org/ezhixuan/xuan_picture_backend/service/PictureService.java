@@ -1,6 +1,9 @@
 package org.ezhixuan.xuan_picture_backend.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.ezhixuan.xuan_picture_backend.factory.picture.PictureFactory;
+import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureQueryRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadRequest;
 import org.ezhixuan.xuan_picture_backend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -33,4 +36,35 @@ public interface PictureService extends IService<Picture> {
      * @return 图片脱敏后信息
      */
     PictureVO upload(MultipartFile file, PictureUploadRequest request, User loginUser);
+
+    /**
+     * 获取脱敏后图片信息 包含对应用户信息
+     * @author Ezhixuan
+     * @param picture 图片
+     * @return PictureVO
+     */
+    PictureVO getPictureVO(Picture picture);
+
+    /**
+     * 获取脱敏后图片信息 包含对应用户信息 批量
+     * @author Ezhixuan
+     * @param picturePage 需要已包含分页信息
+     * @return Page<PictureVO>
+     */
+    Page<PictureVO> getPictureVOPage(Page<Picture> picturePage);
+
+    /**
+     * 获取查询条件
+     * @author Ezhixuan
+     * @param queryRequest 查询参数
+     * @return QueryWrapper<Picture>
+     */
+    QueryWrapper<Picture> getQueryWrapper(PictureQueryRequest queryRequest);
+
+    /**
+     * 校验图片信息
+     * @author Ezhixuan
+     * @param picture 图片信息
+     */
+    void validPicture(Picture picture);
 }
