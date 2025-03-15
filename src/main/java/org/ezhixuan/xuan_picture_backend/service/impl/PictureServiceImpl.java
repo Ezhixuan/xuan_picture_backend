@@ -11,8 +11,8 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import lombok.RequiredArgsConstructor;
 import org.ezhixuan.xuan_picture_backend.constant.UserConstant;
 import org.ezhixuan.xuan_picture_backend.exception.ErrorCode;
-import org.ezhixuan.xuan_picture_backend.exception.ThrowUtils;
 import org.ezhixuan.xuan_picture_backend.factory.picture.PictureFactory;
+import org.ezhixuan.xuan_picture_backend.factory.picture.impl.GitHubPictureServiceImpl;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureQueryRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureReviewRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadRequest;
@@ -21,14 +21,15 @@ import org.ezhixuan.xuan_picture_backend.model.entity.Picture;
 import org.ezhixuan.xuan_picture_backend.mapper.PictureMapper;
 import org.ezhixuan.xuan_picture_backend.model.entity.User;
 import org.ezhixuan.xuan_picture_backend.model.enums.PictureReviewStatusEnum;
-import org.ezhixuan.xuan_picture_backend.model.enums.UserRoleEnum;
 import org.ezhixuan.xuan_picture_backend.model.vo.picture.PictureVO;
 import org.ezhixuan.xuan_picture_backend.service.PictureService;
 import org.ezhixuan.xuan_picture_backend.service.UserService;
+import org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -45,6 +46,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
 
     private final PictureFactory factory;
     private final UserService userService;
+    private final GitHubPictureServiceImpl gitHubPictureServiceImpl;
 
     /**
      * 获取图片工厂
@@ -68,33 +70,79 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
      */
     @Override
     public PictureVO upload(MultipartFile file, PictureUploadRequest request, User loginUser) {
-        throwIf(Objects.isNull(loginUser), ErrorCode.NO_AUTH_ERROR);
-        // 校验文件
-        Long picId = null;
-        if (Objects.nonNull(request)) {
-            picId = request.getId();
-        }
-        if (Objects.nonNull(picId)) {
-            Picture picture = this.getById(picId);
-            throwIf(Objects.isNull(picture), ErrorCode.PARAMS_ERROR, "图片不存在");
-            throwIf(!Objects.equals(picture.getUserId(), loginUser.getId()) || !userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR, "无权限修改图片");
-        }
+        validateUploadParam(request, loginUser);
         String targetPath = String.format("public/%s/", loginUser.getId());
         try {
-            PictureUploadResult result = factory.getInstance().doUpload(file, targetPath, request.isNotReName());
-            Picture picture = BeanUtil.copyProperties(result, Picture.class);
-            picture.setUserId(loginUser.getId());
-            if (Objects.nonNull(picId)) {
-                picture.setId(picId);
-                picture.setEditTime(new Date());
-            }
-            this.fillReviewParams(picture, loginUser);
-            boolean resultSave = this.saveOrUpdate(picture);
-            throwIf(!resultSave, ErrorCode.OPERATION_ERROR, "图片上传失败");
-            return PictureVO.objToVo(picture);
+            PictureUploadResult result = PictureCommonUtil.processImage(file, request.isNotReName());
+            String url = factory.getInstance().doUpload(file.getInputStream(), targetPath, result.getName());
+            result.setUrl(url);
+            return doUpload(loginUser, result, request.getId());
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 通过网络url上传图片
+     *
+     * @param url       图片url
+     * @param request   请求参数
+     * @param loginUser 用户信息
+     * @return 图片脱敏后信息
+     * @author Ezhixuan
+     */
+    @Override
+    public PictureVO uploadByUrl(String url, PictureUploadRequest request, User loginUser) {
+        validateUploadParam(request, loginUser);
+        PictureCommonUtil.validatePicture(url);
+        // github doDownload实现为通过网络请求下载图片
+        try(InputStream inputStream = gitHubPictureServiceImpl.doDownload(url)) {
+
+            PictureUploadResult result = PictureCommonUtil.processImage(url, request.isNotReName());
+            String targetPath = String.format("public/%s/", loginUser.getId());
+            url = factory.getInstance().doUpload(inputStream, targetPath, result.getName());
+            result.setUrl(url);
+            return doUpload(loginUser, result, request.getId());
+        } catch (IOException | UnirestException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 检验上传请求参数
+     * @author Ezhixuan
+     * @param request
+     * @param loginUser
+     */
+    private void validateUploadParam(PictureUploadRequest request, User loginUser) {
+        throwIf(Objects.isNull(loginUser), ErrorCode.NO_AUTH_ERROR);
+        if (Objects.nonNull(request) && Objects.nonNull(request.getId())) {
+            Picture picture = this.getById(request.getId());
+            throwIf(Objects.isNull(picture), ErrorCode.PARAMS_ERROR, "图片不存在");
+            throwIf(!Objects.equals(picture.getUserId(), loginUser.getId()) || !userService.isAdmin(loginUser), ErrorCode.NO_AUTH_ERROR, "无权限修改图片");
+        }
+    }
+
+    /**
+     * 获取上传后的uploadResult进行数据库存储
+     * @author Ezhixuan
+     * @param loginUser 上传用户
+     * @param uploadResult 图片上传结果 所有{@link PictureUploadResult}参数都需要进行赋值
+     * @param picId 图片id，允许为null
+     * @return PictureVO 图片脱敏后信息
+     */
+    private PictureVO doUpload(User loginUser, PictureUploadResult uploadResult, Long picId) {
+        // 内部方法 传入的参数都经过验证 不需要对uploadResult进行二次验证
+        Picture picture = BeanUtil.copyProperties(uploadResult, Picture.class);
+        picture.setUserId(loginUser.getId());
+        if (Objects.nonNull(picId)) {
+            picture.setId(picId);
+            picture.setEditTime(new Date());
+        }
+        this.fillReviewParams(picture, loginUser);
+        boolean resultSave = this.saveOrUpdate(picture);
+        throwIf(!resultSave, ErrorCode.OPERATION_ERROR, "图片上传失败");
+        return PictureVO.objToVo(picture);
     }
 
     /**

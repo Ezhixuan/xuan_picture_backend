@@ -51,6 +51,10 @@ public class ThrowUtils {
         exception(errorCode.getCode(), message);
     }
 
+    public static void exception(ErrorCode errorCode, String message, Object... params) {
+        exception(errorCode.getCode(), message, params);
+    }
+
     public static void exception(int code, String message) {
         exception(code, message, (Object[]) null);
     }

@@ -39,6 +39,16 @@ public interface PictureService extends IService<Picture> {
     PictureVO upload(MultipartFile file, PictureUploadRequest request, User loginUser);
 
     /**
+     * 通过网络url上传图片
+     * @author Ezhixuan
+     * @param url 图片url
+     * @param request 请求参数
+     * @param loginUser 用户信息
+     * @return 图片脱敏后信息
+     */
+    PictureVO uploadByUrl(String url, PictureUploadRequest request, User loginUser);
+
+    /**
      * 获取脱敏后图片信息 包含对应用户信息
      * @author Ezhixuan
      * @param picture 图片

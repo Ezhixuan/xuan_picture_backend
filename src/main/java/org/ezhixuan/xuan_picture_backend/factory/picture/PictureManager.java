@@ -25,17 +25,14 @@ public interface PictureManager {
     UploadModelEnum getUploadModelEnum();
 
     /**
-     * 上传文件
-     *
+     * 上传图片
      * @author Ezhixuan
-     * @param multipartFile 文件
+     * @param inputStream 文件流
      * @param targetPath 目标路径
-     * @param notReName 是否重命名 默认重命名
-     * @return 返回url
-     * @throws IOException 文件转换异常
-     * @throws UnirestException 网络请求异常
+     * @param fileName 文件名
+     * @return url
      */
-    PictureUploadResult doUpload(MultipartFile multipartFile, String targetPath, boolean notReName) throws IOException, UnirestException;
+    String doUpload(InputStream inputStream, String targetPath, String fileName) throws IOException, UnirestException;
 
     /**
      * 下载文件

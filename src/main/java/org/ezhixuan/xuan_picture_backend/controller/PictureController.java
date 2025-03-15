@@ -49,22 +49,24 @@ public class PictureController {
     private final UserService userService;
 
     @ApiOperation("图片上传")
-    @SneakyThrows
-    @PostMapping("/v1/upload")
-    @AuthCheck(mustRole = UserConstant.USER_ROLE_ADMIN)
-    public BaseResponse<PictureUploadResult> upload(@RequestPart("file") MultipartFile file, boolean notReName) {
-        PictureUploadResult result =
-            pictureService.getPictureFactory().getInstance().doUpload(file, "public/", notReName);
-        return ResultUtils.success(result);
-    }
-
-    @ApiOperation("图片上传")
     @PostMapping("/upload")
     public BaseResponse<PictureVO> upload(@RequestPart("file") MultipartFile file, PictureUploadRequest uploadRequest,
         HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         return ResultUtils.success(pictureService.upload(file, uploadRequest, loginUser));
     }
+
+    @ApiOperation("通过url进行图片上传")
+    @PostMapping("/upload/url")
+    public BaseResponse<PictureVO> uploadPictureByUrl(
+            @RequestBody PictureUploadRequest pictureUploadRequest,
+            HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        String fileUrl = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadByUrl(fileUrl, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
 
     @ApiOperation("图片下载")
     @SneakyThrows

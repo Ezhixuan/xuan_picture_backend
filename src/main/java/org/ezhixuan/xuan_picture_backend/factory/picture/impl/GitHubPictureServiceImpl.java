@@ -1,5 +1,6 @@
 package org.ezhixuan.xuan_picture_backend.factory.picture.impl;
 
+import static org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil.pathName;
 import static org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil.toBase64Code;
 
 import java.io.IOException;
@@ -49,29 +50,20 @@ public class GitHubPictureServiceImpl implements PictureManager {
     }
 
     /**
-     * 上传文件
-     *
+     * 上传图片
      * @author Ezhixuan
-     * @param multipartFile 文件
+     * @param inputStream 文件流
      * @param targetPath 目标路径
-     * @param notReName 是否重命名 默认重命名
-     * @return 返回url
-     * @throws IOException 文件转换异常
-     * @throws UnirestException 网络请求异常
+     * @param fileName 文件名
+     * @return url
      */
     @Override
-    public PictureUploadResult doUpload(MultipartFile multipartFile, String targetPath, boolean notReName)
-        throws IOException, UnirestException {
-        ThrowUtils.throwIf(Objects.isNull(multipartFile), ErrorCode.PARAMS_ERROR);
+    public String doUpload(InputStream inputStream, String targetPath, String fileName) {
         ThrowUtils.throwIf(
             Objects.isNull(gitHubConfig) || Objects.isNull(gitHubConfig.getRepo())
                 || Objects.isNull(gitHubConfig.getBranch()) || Objects.isNull(gitHubConfig.getToken()),
             ErrorCode.SYSTEM_ERROR, "检查github配置");
-        PictureCommonUtil.validateFile(multipartFile);
-        PictureUploadResult result = PictureCommonUtil.processImage(multipartFile, notReName);
-        String url = uploadImage(toBase64Code(multipartFile), targetPath + result.getName());
-        result.setUrl(url);
-        return result;
+        return uploadImage(toBase64Code(inputStream), pathName(targetPath, fileName));
     }
 
     /**
@@ -83,6 +75,7 @@ public class GitHubPictureServiceImpl implements PictureManager {
      */
     @Override
     public InputStream doDownload(String urlStr) {
+        PictureCommonUtil.validatePicture(urlStr);
         try {
             URL url = new URL(urlStr);
             HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -91,7 +84,7 @@ public class GitHubPictureServiceImpl implements PictureManager {
             connection.setReadTimeout(10000);
             ThrowUtils.throwIf(connection.getResponseCode() != HttpURLConnection.HTTP_OK, ErrorCode.OPERATION_ERROR,
                 "下载失败，请检查网络");
-            // 获取输入流并写入响应
+            // 获取输入流
             return connection.getInputStream();
         } catch (IOException e) {
             ThrowUtils.exception(ErrorCode.SYSTEM_ERROR.getCode(), "下载失败 url={}", urlStr);
@@ -107,7 +100,7 @@ public class GitHubPictureServiceImpl implements PictureManager {
      * @param filename 文件名
      * @return url
      */
-    private String uploadImage(String base64Code, String filename) throws UnirestException {
+    private String uploadImage(String base64Code, String filename) {
         String repo = gitHubConfig.getRepo();
         String branch = gitHubConfig.getBranch();
         String token = gitHubConfig.getToken();
@@ -119,9 +112,14 @@ public class GitHubPictureServiceImpl implements PictureManager {
         body.set("content", base64Code);
         body.set("branch", branch);
 
-        HttpResponse<String> response = Unirest.put(apiUrl).header("Authorization", "token " + token)
-            .header("Accept", "application/vnd.github.v3+json").header("Content-Type", "application/json")
-            .body(body.toString()).asString();
+        HttpResponse<String> response = null;
+        try {
+            response = Unirest.put(apiUrl).header("Authorization", "token " + token)
+                .header("Accept", "application/vnd.github.v3+json").header("Content-Type", "application/json")
+                .body(body.toString()).asString();
+        } catch (UnirestException e) {
+            ThrowUtils.exception(ErrorCode.SYSTEM_ERROR, "上传失败 response={}", response);
+        }
         if (response.getStatus() != 201) {
             ThrowUtils.throwIf(response.getBody().contains("Invalid request"), ErrorCode.PARAMS_ERROR, "文件名已存在");
             ThrowUtils.exception(ErrorCode.SYSTEM_ERROR.getCode(), "上传失败 response={}", response.toString());
