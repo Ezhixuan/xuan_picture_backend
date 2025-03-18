@@ -58,6 +58,12 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!--mybatis-plus-->
         <!--https://baomidou.com/getting-started/#spring-boot2-->
         <dependency>
