@@ -11,21 +11,20 @@ import java.util.*;
 
 import javax.imageio.ImageIO;
 
-import cn.hutool.core.util.StrUtil;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpStatus;
-import cn.hutool.http.HttpUtil;
-import cn.hutool.http.Method;
 import org.ezhixuan.xuan_picture_backend.exception.BusinessException;
 import org.ezhixuan.xuan_picture_backend.exception.ErrorCode;
 import org.ezhixuan.xuan_picture_backend.exception.ThrowUtils;
-import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadResult;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpResponse;
+import cn.hutool.http.HttpStatus;
+import cn.hutool.http.HttpUtil;
+import cn.hutool.http.Method;
 
 /**
  * 图片处理工具
@@ -45,12 +44,19 @@ public class PictureCommonUtil {
         return reName(fileName, null);
     }
 
+    /**
+     * 重命名
+     * @author Ezhixuan
+     * @param fileName 文件名
+     * @param contentType 内容类型
+     * @return 新文件名
+     */
     public static String reName(String fileName, String contentType) {
         ThrowUtils.throwIf(!StringUtils.hasText(fileName), ErrorCode.PARAMS_ERROR, "文件名不能为空");
         String ext = "";
         if (StrUtil.isNotBlank(contentType)) {
             ext = getSuffixByContentType(contentType);
-        }else {
+        } else {
             ext = FileUtil.getSuffix(fileName);
         }
 
@@ -65,6 +71,12 @@ public class PictureCommonUtil {
         return String.format("%s_%s.%s", date, uniqueId, ext);
     }
 
+    /**
+     * 根据内容类型获取后缀
+     * @author Ezhixuan
+     * @param contentType 类型
+     * @return 后缀
+     */
     public static String getSuffixByContentType(String contentType) {
         switch (contentType) {
             case "image/jpeg":
@@ -103,10 +115,10 @@ public class PictureCommonUtil {
     }
 
     /**
-     * 将mutipartFile转为base64格式
+     * 将文件流转为base64格式
      *
      * @author Ezhixuan
-     * @param multipartFile 文件
+     * @param inputStream 文件流
      * @return base64格式内容
      */
     public static String toBase64Code(InputStream inputStream) {
@@ -124,6 +136,7 @@ public class PictureCommonUtil {
 
     /**
      * 检验文件是否合规
+     *
      * @author Ezhixuan
      * @param file 文件
      */
@@ -133,7 +146,7 @@ public class PictureCommonUtil {
         if (!StringUtils.hasText(fileSuffix)) {
             throw new RuntimeException("文件格式错误");
         }
-        final String[] IMAGE_SUFFIX_ARRAY = {"png", "jpg", "jpeg", "webp"};
+        final String[] IMAGE_SUFFIX_ARRAY = {"png", "jpg", "jpeg", "webp", "gif"};
         for (String suffix : IMAGE_SUFFIX_ARRAY) {
             if (fileSuffix.equals(suffix)) {
                 return;
@@ -144,6 +157,7 @@ public class PictureCommonUtil {
 
     /**
      * 检验url是否合规
+     *
      * @author Ezhixuan
      * @param fileUrl url
      */
@@ -158,8 +172,8 @@ public class PictureCommonUtil {
         }
 
         // 2. 校验 URL 协议
-        ThrowUtils.throwIf(!(fileUrl.startsWith("http://") || fileUrl.startsWith("https://")),
-                ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件地址");
+        ThrowUtils.throwIf(!(fileUrl.startsWith("http://") || fileUrl.startsWith("https://")), ErrorCode.PARAMS_ERROR,
+            "仅支持 HTTP 或 HTTPS 协议的文件地址");
 
         // 3. 发送 HEAD 请求以验证文件是否存在
         try (HttpResponse response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute()) {
@@ -171,9 +185,10 @@ public class PictureCommonUtil {
             String contentType = response.header("Content-Type");
             if (StrUtil.isNotBlank(contentType)) {
                 // 允许的图片类型
-                final List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
-                ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
-                        ErrorCode.PARAMS_ERROR, "文件类型错误");
+                final List<String> ALLOW_CONTENT_TYPES =
+                    Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
+                ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()), ErrorCode.PARAMS_ERROR,
+                    "文件类型错误");
             }
             // 5. 校验文件大小
             String contentLengthStr = response.header("Content-Length");
@@ -189,7 +204,6 @@ public class PictureCommonUtil {
         }
     }
 
-
     /**
      * 解析图片信息
      *
@@ -200,7 +214,8 @@ public class PictureCommonUtil {
      */
     public static PictureUploadResult processImage(MultipartFile file, boolean notReName) throws IOException {
         validatePicture(file);
-        String fileSuffix = FileUtil.getSuffix(file.getOriginalFilename());
+        // String fileSuffix = FileUtil.getSuffix(file.getOriginalFilename());
+        String fileSuffix = "webp";
         long sizeKB = file.getSize();
         PictureUploadResult.PictureUploadResultBuilder builder = PictureUploadResult.builder()
             .name(notReName ? file.getOriginalFilename() : reName(file.getOriginalFilename())).picSize(sizeKB)
@@ -211,11 +226,18 @@ public class PictureCommonUtil {
             int width = image.getWidth();
             int height = image.getHeight();
             int gcd = gcd(width, height);
-            double aspectRatio = (double) (width / gcd) / (height / gcd);
+            double aspectRatio = (double)(width / gcd) / (height / gcd);
             return builder.picWidth(width).picHeight(height).picScale(aspectRatio).build();
         }
     }
 
+    /**
+     * 补充/
+     * @author Ezhixuan
+     * @param targetPath 目标路径
+     * @param fileName 文件名
+     * @return url
+     */
     public static String pathName(String targetPath, String fileName) {
         if (!targetPath.endsWith(File.separator)) {
             targetPath += File.separator;
@@ -223,6 +245,13 @@ public class PictureCommonUtil {
         return targetPath + fileName;
     }
 
+    /**
+     * 解析图片信息
+     * @author Ezhixuan
+     * @param fileUrl 图片url
+     * @param notReName 是否重命名
+     * @return 除url外的图片信息
+     */
     public static PictureUploadResult processImage(String fileUrl, boolean notReName) {
         ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.PARAMS_ERROR, "文件地址不能为空");
 
@@ -233,31 +262,33 @@ public class PictureCommonUtil {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件地址格式不正确");
         }
 
-        ThrowUtils.throwIf(!(fileUrl.startsWith("http://") || fileUrl.startsWith("https://")),
-                ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件地址");
+        ThrowUtils.throwIf(!(fileUrl.startsWith("http://") || fileUrl.startsWith("https://")), ErrorCode.PARAMS_ERROR,
+            "仅支持 HTTP 或 HTTPS 协议的文件地址");
 
         String ext = FileUtil.extName(fileUrl);
         String contentType;
         PictureUploadResult.PictureUploadResultBuilder builder = PictureUploadResult.builder();
         try (HttpResponse response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute();
-        InputStream inputStream = url.openStream()) {
-            ThrowUtils.throwIf(Objects.isNull(response) || response.getStatus() != HttpStatus.HTTP_OK, ErrorCode.PARAMS_ERROR, "文件地址不正确" + url);
+            InputStream inputStream = url.openStream()) {
+            ThrowUtils.throwIf(Objects.isNull(response) || response.getStatus() != HttpStatus.HTTP_OK,
+                ErrorCode.PARAMS_ERROR, "文件地址不正确" + url);
             contentType = response.header("Content-Type");
             if (StrUtil.isNotBlank(contentType)) {
-                final List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
+                final List<String> ALLOW_CONTENT_TYPES =
+                    Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
                 if (StrUtil.isBlank(ext) && notReName) {
                     // 如果包含类型，按照类型添加后缀
-                    ext = contentType.substring(contentType.indexOf("/")+1);
+                    ext = contentType.substring(contentType.indexOf("/") + 1);
                 }
-                ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
-                        ErrorCode.PARAMS_ERROR, "文件类型错误");
+                ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()), ErrorCode.PARAMS_ERROR,
+                    "文件类型错误");
             }
             String contentLengthStr = response.header("Content-Length");
             long contentLength = 0L;
             if (StrUtil.isNotBlank(contentLengthStr)) {
                 contentLength = Long.parseLong(contentLengthStr);
             } else {
-                contentLength = (long) inputStream.available();
+                contentLength = (long)inputStream.available();
             }
             final long maxSize = 20 * 1024 * 1024L;
             builder.picSize(contentLength);
@@ -270,15 +301,12 @@ public class PictureCommonUtil {
             int width = image.getWidth();
             int height = image.getHeight();
             int gcd = gcd(width, height);
-            double aspectRatio = (double) (width / gcd) / (height / gcd);
+            double aspectRatio = (double)(width / gcd) / (height / gcd);
             return builder
-                    .picWidth(width)
-                    .picHeight(height)
-                    .picScale(aspectRatio)
-                    .name(notReName ? FileUtil.mainName(fileUrl) + "." + ext : reName(FileUtil.mainName(fileUrl),contentType))
-                    .picFormat(ext)
-                    .build();
-        }catch (IOException e) {
+                .picWidth(width).picHeight(height).picScale(aspectRatio).name(notReName
+                    ? FileUtil.mainName(fileUrl) + "." + ext : reName(FileUtil.mainName(fileUrl), contentType))
+                .picFormat(ext).build();
+        } catch (IOException e) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件地址不正确");
         }
     }
