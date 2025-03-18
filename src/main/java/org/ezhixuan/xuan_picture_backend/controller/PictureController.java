@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.ezhixuan.xuan_picture_backend.annotation.AuthCheck;
+import org.ezhixuan.xuan_picture_backend.annotation.Cache;
 import org.ezhixuan.xuan_picture_backend.common.BaseResponse;
 import org.ezhixuan.xuan_picture_backend.common.DeleteRequest;
 import org.ezhixuan.xuan_picture_backend.common.ResultUtils;
@@ -165,6 +166,7 @@ public class PictureController {
 
     @ApiOperation("图片获取分页(封装)")
     @PostMapping("/list/page/vo")
+    @Cache
     public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest,
         HttpServletRequest request) {
         long current = pictureQueryRequest.getCurrent();

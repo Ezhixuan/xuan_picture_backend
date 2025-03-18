@@ -18,6 +18,7 @@
         <unirest.version>1.4.9</unirest.version>
         <knife4j.version>4.4.0</knife4j.version>
         <jsoup.version>1.15.3</jsoup.version>
+        <caffeine.version>3.1.8</caffeine.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -119,6 +120,14 @@
             <artifactId>jsoup</artifactId>
             <version>${jsoup.version}</version>
         </dependency>
+
+        <!-- 本地缓存 Caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
+
 
     </dependencies>
 
