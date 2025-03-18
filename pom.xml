@@ -17,6 +17,7 @@
         <hutool-all.version>5.8.26</hutool-all.version>
         <unirest.version>1.4.9</unirest.version>
         <knife4j.version>4.4.0</knife4j.version>
+        <jsoup.version>1.15.3</jsoup.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -104,6 +105,13 @@
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi2-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
+        </dependency>
+
+        <!-- HTML 解析：https://jsoup.org/ -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
         </dependency>
 
     </dependencies>

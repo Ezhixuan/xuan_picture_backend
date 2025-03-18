@@ -3,7 +3,10 @@ package org.ezhixuan.xuan_picture_backend.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,10 +16,7 @@ import org.ezhixuan.xuan_picture_backend.constant.UserConstant;
 import org.ezhixuan.xuan_picture_backend.exception.ErrorCode;
 import org.ezhixuan.xuan_picture_backend.factory.picture.PictureFactory;
 import org.ezhixuan.xuan_picture_backend.factory.picture.impl.GitHubPictureServiceImpl;
-import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureQueryRequest;
-import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureReviewRequest;
-import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadRequest;
-import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadResult;
+import org.ezhixuan.xuan_picture_backend.model.dto.picture.*;
 import org.ezhixuan.xuan_picture_backend.model.entity.Picture;
 import org.ezhixuan.xuan_picture_backend.mapper.PictureMapper;
 import org.ezhixuan.xuan_picture_backend.model.entity.User;
@@ -25,6 +25,10 @@ import org.ezhixuan.xuan_picture_backend.model.vo.picture.PictureVO;
 import org.ezhixuan.xuan_picture_backend.service.PictureService;
 import org.ezhixuan.xuan_picture_backend.service.UserService;
 import org.ezhixuan.xuan_picture_backend.utils.PictureCommonUtil;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +37,7 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.ezhixuan.xuan_picture_backend.exception.ThrowUtils.exception;
 import static org.ezhixuan.xuan_picture_backend.exception.ThrowUtils.throwIf;
 
 /**
@@ -106,6 +111,63 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture> impl
         } catch (IOException | UnirestException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 批量抓取图片
+     *
+     * @param batchRequest 抓取请求
+     * @param loginUser    用户信息
+     * @return 成功抓取数量
+     * @author Ezhixuan
+     */
+    @Override
+    public int uploadBatch(PictureUploadByBatchRequest batchRequest, User loginUser) {
+        String searchText = batchRequest.getSearchText();
+        Integer count = batchRequest.getCount();
+        throwIf(StrUtil.isBlank(searchText), ErrorCode.PARAMS_ERROR, "搜索文本不能为空");
+        throwIf(count == null || count < 1, ErrorCode.PARAMS_ERROR, "抓取数量不能小于1");
+        throwIf(count > 30, ErrorCode.PARAMS_ERROR, "抓取数量不能大于30");
+        int first = RandomUtil.randomInt();
+        String fetchUrl = String.format("https://cn.bing.com/images/async?first=%d&q=%s&mmasync=1",first, searchText);
+        // html解析
+        Document document = null;
+        PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+        try {
+            document = Jsoup.connect(fetchUrl)
+                    .get();
+        } catch (IOException e) {
+            exception("获取页面失败");
+        }
+        Element div = document.getElementsByClass("dgcontrol").first();
+        if (Objects.isNull(div)) {
+            exception("获取页面失败");
+        }
+        Elements imgElementList = div.select(".iusc");
+        int successCount = 0;
+        for (Element element : imgElementList) {
+            String dataM = element.attr("m");
+            String url;
+            try {
+                JSONObject entries = JSONUtil.parseObj(dataM);
+                url = entries.getStr("murl");
+                if (StrUtil.isBlank(url)) {
+                    log.error("图片url为空，跳过");
+                    continue;
+                }
+                PictureVO pictureVO = this.uploadByUrl(url, pictureUploadRequest, loginUser);
+                if (Objects.nonNull(pictureVO)) {
+                    successCount++;
+                }
+                if (successCount >= count) {
+                    break;
+                }
+            } catch (Exception e) {
+                log.error("图片抓取失败", e);
+                continue;
+            }
+        }
+        return successCount;
     }
 
     /**

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.ezhixuan.xuan_picture_backend.factory.picture.PictureFactory;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureQueryRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureReviewRequest;
+import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadByBatchRequest;
 import org.ezhixuan.xuan_picture_backend.model.dto.picture.PictureUploadRequest;
 import org.ezhixuan.xuan_picture_backend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -47,6 +48,15 @@ public interface PictureService extends IService<Picture> {
      * @return 图片脱敏后信息
      */
     PictureVO uploadByUrl(String url, PictureUploadRequest request, User loginUser);
+
+    /**
+     * 批量抓取图片
+     * @author Ezhixuan
+     * @param batchRequest 抓取请求
+     * @param loginUser 用户信息
+     * @return 成功抓取数量
+     */
+    int uploadBatch(PictureUploadByBatchRequest batchRequest, User loginUser);
 
     /**
      * 获取脱敏后图片信息 包含对应用户信息

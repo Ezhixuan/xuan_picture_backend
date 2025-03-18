@@ -42,15 +42,42 @@ public class PictureCommonUtil {
      * @return 新文件名
      */
     public static String reName(String fileName) {
-        ThrowUtils.throwIf(!StringUtils.hasText(fileName), ErrorCode.PARAMS_ERROR, "文件名不能为空");
-        String ext = FileUtil.getSuffix(fileName);
+        return reName(fileName, null);
+    }
 
+    public static String reName(String fileName, String contentType) {
+        ThrowUtils.throwIf(!StringUtils.hasText(fileName), ErrorCode.PARAMS_ERROR, "文件名不能为空");
+        String ext = "";
+        if (StrUtil.isNotBlank(contentType)) {
+            ext = getSuffixByContentType(contentType);
+        }else {
+            ext = FileUtil.getSuffix(fileName);
+        }
+
+        if (StrUtil.isBlank(ext)) {
+            return fileName;
+        }
         // 生成唯一标识
         String date = DateUtil.formatDate(new Date());
         String uniqueId = UUID.randomUUID().toString();
 
         // 保留部分原始名称+唯一标识+扩展名
         return String.format("%s_%s.%s", date, uniqueId, ext);
+    }
+
+    public static String getSuffixByContentType(String contentType) {
+        switch (contentType) {
+            case "image/jpeg":
+                return "jpg";
+            case "image/png":
+                return "png";
+            case "image/gif":
+                return "gif";
+            case "image/webp":
+                return "webp";
+            default:
+                return "";
+        }
     }
 
     /**
@@ -210,15 +237,18 @@ public class PictureCommonUtil {
                 ErrorCode.PARAMS_ERROR, "仅支持 HTTP 或 HTTPS 协议的文件地址");
 
         String ext = FileUtil.extName(fileUrl);
-        PictureUploadResult.PictureUploadResultBuilder builder = PictureUploadResult.builder()
-                .name(notReName ? FileUtil.mainName(fileUrl) + "." + ext : reName(fileUrl))
-                .picFormat(ext);
+        String contentType;
+        PictureUploadResult.PictureUploadResultBuilder builder = PictureUploadResult.builder();
         try (HttpResponse response = HttpUtil.createRequest(Method.HEAD, fileUrl).execute();
         InputStream inputStream = url.openStream()) {
-            ThrowUtils.throwIf(Objects.isNull(response) || response.getStatus() != HttpStatus.HTTP_OK, ErrorCode.PARAMS_ERROR, "文件地址不正确");
-            String contentType = response.header("Content-Type");
+            ThrowUtils.throwIf(Objects.isNull(response) || response.getStatus() != HttpStatus.HTTP_OK, ErrorCode.PARAMS_ERROR, "文件地址不正确" + url);
+            contentType = response.header("Content-Type");
             if (StrUtil.isNotBlank(contentType)) {
                 final List<String> ALLOW_CONTENT_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png", "image/webp");
+                if (StrUtil.isBlank(ext) && notReName) {
+                    // 如果包含类型，按照类型添加后缀
+                    ext = contentType.substring(contentType.indexOf("/")+1);
+                }
                 ThrowUtils.throwIf(!ALLOW_CONTENT_TYPES.contains(contentType.toLowerCase()),
                         ErrorCode.PARAMS_ERROR, "文件类型错误");
             }
@@ -245,6 +275,8 @@ public class PictureCommonUtil {
                     .picWidth(width)
                     .picHeight(height)
                     .picScale(aspectRatio)
+                    .name(notReName ? FileUtil.mainName(fileUrl) + "." + ext : reName(FileUtil.mainName(fileUrl),contentType))
+                    .picFormat(ext)
                     .build();
         }catch (IOException e) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件地址不正确");

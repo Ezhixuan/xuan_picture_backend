@@ -1,30 +1,32 @@
 package org.ezhixuan.xuan_picture_backend.controller;
 
-import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import io.swagger.annotations.ApiOperation;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Objects;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.ezhixuan.xuan_picture_backend.annotation.AuthCheck;
 import org.ezhixuan.xuan_picture_backend.common.BaseResponse;
 import org.ezhixuan.xuan_picture_backend.common.DeleteRequest;
 import org.ezhixuan.xuan_picture_backend.common.ResultUtils;
 import org.ezhixuan.xuan_picture_backend.constant.UserConstant;
-import org.ezhixuan.xuan_picture_backend.exception.BusinessException;
 import org.ezhixuan.xuan_picture_backend.exception.ErrorCode;
 import org.ezhixuan.xuan_picture_backend.exception.ThrowUtils;
 import org.ezhixuan.xuan_picture_backend.model.dto.user.*;
 import org.ezhixuan.xuan_picture_backend.model.entity.User;
 import org.ezhixuan.xuan_picture_backend.model.vo.user.UserVO;
 import org.ezhixuan.xuan_picture_backend.service.UserService;
-import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Objects;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+
+import cn.hutool.core.bean.BeanUtil;
+import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 用户接口
+ *
  * @author ezhixuan
  */
 @RestController
@@ -49,7 +51,7 @@ public class UserController {
     }
 
     @ApiOperation("用户登录信息")
-    @PostMapping("/get/login")
+    @GetMapping("/get/login")
     public BaseResponse<UserVO> getLoginUser(HttpServletRequest request) {
         return ResultUtils.success(userService.getUserVO(userService.getLoginUser(request)));
     }
@@ -121,13 +123,12 @@ public class UserController {
         ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
         long current = userQueryRequest.getCurrent();
         long pageSize = userQueryRequest.getPageSize();
-        Page<User> userPage = userService.page(new Page<>(current, pageSize),
-                userService.getQueryWrapper(userQueryRequest));
+        Page<User> userPage =
+            userService.page(new Page<>(current, pageSize), userService.getQueryWrapper(userQueryRequest));
         Page<UserVO> userVOPage = new Page<>(current, pageSize, userPage.getTotal());
         List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
     }
-
 
 }
